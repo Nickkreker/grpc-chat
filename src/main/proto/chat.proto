@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "internal";
+option java_multiple_files = true;
+
+service Chat {
+  rpc StartChat (stream Message) returns (stream Message);
+}
+
+message Message {
+  string senderName = 1;
+  string sendDate = 2;
+  string messageText = 3;
+}
