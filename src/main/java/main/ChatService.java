@@ -5,47 +5,39 @@ import internal.Message;
 import io.grpc.stub.StreamObserver;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatService extends ChatGrpc.ChatImplBase {
     private final String username;
+    private Map<String, StreamObserver<Message>> connections;
 
     public ChatService(String username) {
         this.username = username;
+        connections = new ConcurrentHashMap<>();
     }
 
     @Override
     public StreamObserver<Message> startChat(StreamObserver<Message> responseObserver) {
-        Thread readerThread = new Thread(() -> {
-            Scanner sc = new Scanner(System.in);
-            while (sc.hasNextLine()) {
-                String msgText = sc.nextLine();
-                if (Thread.currentThread().isInterrupted()) {
-                    break;
-                }
-                Message message = Message.newBuilder()
-                        .setMessageText(msgText)
-                        .setSenderName(username)
-                        .setSendDate(new Date().toString()).build();
-                responseObserver.onNext(message);
-            }
-        });
-        readerThread.start();
-
         final String[] peerName = {null};
 
         return new StreamObserver<Message>() {
             @Override
             public void onNext(Message value) {
-                System.out.printf("%s: %s: %s\n", value.getSendDate(),
-                                  value.getSenderName(), value.getMessageText());
-                if (peerName[0] == null)
+                if (peerName[0] == null) {
                     peerName[0] = value.getSenderName();
+                    connections.put(value.getSenderName(), responseObserver);
+                    System.out.printf("%s connected\n", value.getSenderName());
+                } else {
+                    System.out.printf("%s: %s: %s\n", value.getSendDate(),
+                            value.getSenderName(), value.getMessageText());
+                }
             }
 
             @Override
             public void onError(Throwable t) {
-                System.out.println("Peer closed connection");
+                System.out.println("Peer closed stream");
             }
 
             @Override
@@ -55,8 +47,42 @@ public class ChatService extends ChatGrpc.ChatImplBase {
                     System.out.println("Peer closed stream");
                 else
                     System.out.printf("%s closed stream\n", peerName[0]);
-                readerThread.interrupt();
             }
         };
+    }
+
+    /**
+     * Send message to a peer with a given username. If there are multiple peers with the same username,
+     * message will be sent only to one of them.
+     *
+     * @param username username of a peer
+     * @param messageText text of a message
+     */
+    public void sendMessage(String username, String messageText) {
+        if (!connections.containsKey(username)) {
+            System.out.printf("[ERROR] User %s is not connected\n", username);
+            return;
+        }
+
+        var observer = connections.get(username);
+        try {
+            observer.onNext(
+                    Message.newBuilder()
+                            .setSenderName(this.username)
+                            .setMessageText(messageText)
+                            .setSendDate(new Date().toString()).build()
+            );
+        } catch (IllegalStateException e) {
+            System.out.println("[ERROR] stream is closed");
+        }
+    }
+
+    /**
+     * Close streams with all clients
+     */
+    public void terminate() {
+        for (var connection : connections.values()) {
+            connection.onCompleted();
+        }
     }
 }

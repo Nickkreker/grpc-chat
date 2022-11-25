@@ -19,7 +19,7 @@ public class ChatClient {
         this.username = username;
     }
 
-    public void sendMessage() {
+    public void startChat() {
         StreamObserver<Message> requestObserver =
                 asyncStub.startChat(new StreamObserver<Message>() {
                     @Override
@@ -37,9 +37,12 @@ public class ChatClient {
 
                     @Override
                     public void onCompleted() {
-
+                        System.out.println("Server closed connection");
                     }
                 });
+
+        // Send greeting message with a username
+        requestObserver.onNext(Message.newBuilder().setSenderName(username).build());
 
         Scanner sc = new Scanner(System.in);
         while (sc.hasNextLine()) {
