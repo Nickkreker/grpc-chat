@@ -12,11 +12,13 @@ public class ChatClient {
     private final ChatGrpc.ChatBlockingStub blockingStub;
     private final ChatGrpc.ChatStub asyncStub;
     private final String username;
+    private final String target;
 
-    public ChatClient(Channel channel, String username) {
+    public ChatClient(Channel channel, String username, String target) {
         blockingStub = ChatGrpc.newBlockingStub(channel);
         asyncStub = ChatGrpc.newStub(channel);
         this.username = username;
+        this.target = target;
     }
 
     public void startChat() {
@@ -40,6 +42,8 @@ public class ChatClient {
                         System.out.println("Server closed connection");
                     }
                 });
+
+        System.out.println("Client started, connected to " + target);
 
         // Send greeting message with a username
         requestObserver.onNext(Message.newBuilder().setSenderName(username).build());

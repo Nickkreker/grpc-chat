@@ -32,7 +32,7 @@ public class ChatServer {
         Scanner sc = new Scanner(System.in);
         while (sc.hasNextLine()) {
             String input = sc.nextLine();
-            String[] words = input.split("->");
+            String[] words = input.split("\\s+->\\s+");
             if (words.length != 2) {
                 System.out.println("[ERROR] Wrong input format");
             } else {

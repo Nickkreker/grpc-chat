@@ -22,7 +22,7 @@ public class Main {
             ManagedChannel channel =
                     ManagedChannelBuilder.forTarget(target).usePlaintext().build();
             try {
-                var client = new ChatClient(channel, username);
+                var client = new ChatClient(channel, username, target);
                 client.startChat();
             } finally {
                 channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);

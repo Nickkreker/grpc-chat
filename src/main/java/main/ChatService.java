@@ -82,7 +82,9 @@ public class ChatService extends ChatGrpc.ChatImplBase {
      */
     public void terminate() {
         for (var connection : connections.values()) {
-            connection.onCompleted();
+            try {
+                connection.onCompleted();
+            } catch (IllegalStateException e) {}
         }
     }
 }
