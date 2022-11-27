@@ -1,26 +1,30 @@
-package main;
+package org.grpcchat.lib;
 
-import internal.ChatGrpc;
-import internal.Message;
+import org.grpcchat.internal.ChatGrpc;
+import org.grpcchat.internal.Message;
 import io.grpc.Channel;
 import io.grpc.stub.StreamObserver;
 
 import java.util.Date;
 import java.util.Scanner;
 
+/**
+ * This class represents a chat client that connects to a chat server.
+ */
 public class ChatClient {
-    private final ChatGrpc.ChatBlockingStub blockingStub;
     private final ChatGrpc.ChatStub asyncStub;
     private final String username;
     private final String target;
 
     public ChatClient(Channel channel, String username, String target) {
-        blockingStub = ChatGrpc.newBlockingStub(channel);
         asyncStub = ChatGrpc.newStub(channel);
         this.username = username;
         this.target = target;
     }
 
+    /**
+     * Connect to the server and start chat with it.
+     */
     public void startChat() {
         StreamObserver<Message> requestObserver =
                 asyncStub.startChat(new StreamObserver<Message>() {

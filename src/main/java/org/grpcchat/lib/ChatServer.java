@@ -1,15 +1,73 @@
-package main;
+package org.grpcchat.lib;
 
-import internal.ChatGrpc;
-import internal.Message;
+import org.grpcchat.internal.ChatGrpc;
+import org.grpcchat.internal.Message;
+import io.grpc.Grpc;
+import io.grpc.InsecureServerCredentials;
+import io.grpc.Server;
 import io.grpc.stub.StreamObserver;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ChatService extends ChatGrpc.ChatImplBase {
+/**
+ * This class represents a chat server to which chat clients can connect and then exchange messages.
+ */
+public class ChatServer {
+    private final int port;
+    private final String username;
+    private final Server server;
+    private final ChatService service;
+
+    /**
+     * ChatServer constructor.
+     *
+     * @param port port on which server will listen for connections
+     * @param username name of a server that will be visible to clients
+     */
+    public ChatServer(int port, String username) {
+        this.port = port;
+        this.username = username;
+        var chatService = new ChatService(username);
+        server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
+                .addService(chatService)
+                .build();
+        service = chatService;
+    }
+
+    /**
+     * Start server and make it wait for client connections.
+     *
+     * @throws IOException
+     */
+    public void start() throws IOException {
+        server.start();
+        System.out.println("Server started, listening on " + port);
+
+        Scanner sc = new Scanner(System.in);
+        while (sc.hasNextLine()) {
+            String input = sc.nextLine();
+            String[] words = input.split("\\s+->\\s+");
+            if (words.length != 2) {
+                System.out.println("[ERROR] Wrong input format");
+            } else {
+                String messageText = words[0];
+                String username = words[1];
+                service.sendMessage(username, messageText);
+            }
+        }
+        service.terminate();
+        server.shutdown();
+    }
+}
+
+/**
+ * This is a util class that encapsulates gRPC logic.
+ */
+class ChatService extends ChatGrpc.ChatImplBase {
     private final String username;
     private Map<String, StreamObserver<Message>> connections;
 
@@ -78,7 +136,7 @@ public class ChatService extends ChatGrpc.ChatImplBase {
     }
 
     /**
-     * Close streams with all clients
+     * Close streams with all clients.
      */
     public void terminate() {
         for (var connection : connections.values()) {

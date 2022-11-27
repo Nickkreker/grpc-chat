@@ -43,5 +43,5 @@ run {
 }
 
 application {
-    mainClass = 'main.Main'
+    mainClass = 'org.grpcchat.main.Main'
 }
